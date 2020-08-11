@@ -1,0 +1,2 @@
+include ':app', ':downloadassistant'
+rootProject.name='DownloadAssistant'
