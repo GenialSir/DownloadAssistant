@@ -8,9 +8,11 @@ import java.io.Serializable;
 public class DownloadAssistantBean implements Serializable {
 
     //对应的文件ID
-    private String fileID;
+    private long fileID;
     //当前文件名称。
     private String fileName;
+    //下载文件的临时名称。
+    private String tempFileName;
     //下载地址链接。
     private String downloadLink;
     //文件是否已下载。
@@ -32,11 +34,11 @@ public class DownloadAssistantBean implements Serializable {
     //文件下载保存的地址。
     private String savePath;
 
-    public String getFileID() {
+    public long getFileID() {
         return fileID;
     }
 
-    public void setFileID(String fileID) {
+    public void setFileID(long fileID) {
         this.fileID = fileID;
     }
 
@@ -46,6 +48,14 @@ public class DownloadAssistantBean implements Serializable {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    public String getTempFileName() {
+        return tempFileName;
+    }
+
+    public void setTempFileName(String tempFileName) {
+        this.tempFileName = tempFileName;
     }
 
     public String getDownloadLink() {

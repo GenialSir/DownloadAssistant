@@ -11,6 +11,7 @@ import java.io.ObjectOutputStream;
  * @author genialzbl@163.com (GenialSir) on 2020/8/11.
  */
 public class LocalObjectTool {
+
     public static void saveObjectToLocal(String absolutePath, Object obj) {
         try {
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(absolutePath));

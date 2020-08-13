@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">DownloadHelper</string>
+    <string name="app_name">DownloadAssistant</string>
+
+
+    <string name="connecting">连接中</string>
+    <string name="downloading">正在下载</string>
+    <string name="downloaded">下载完毕</string>
+    <string name="already_downloaded">已下载</string>
+    <string name="download_exception">下载异常</string>
 </resources>

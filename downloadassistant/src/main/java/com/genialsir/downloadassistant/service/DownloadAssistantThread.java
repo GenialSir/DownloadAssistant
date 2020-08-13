@@ -3,7 +3,11 @@ package com.genialsir.downloadassistant.service;
 import android.util.Log;
 
 import com.genialsir.downloadassistant.bean.DownloadAssistantBean;
+import com.genialsir.downloadassistant.constant.CommonHolder;
 import com.genialsir.downloadassistant.tools.CloseTool;
+import com.genialsir.downloadassistant.tools.DownloadTool;
+import com.genialsir.downloadassistant.tools.FilesTool;
+import com.genialsir.downloadassistant.tools.LocalObjectTool;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -31,9 +35,10 @@ public class DownloadAssistantThread implements Runnable {
     public void run() {
         //下载文件时的起始位置。
         long startBytesIndex = 0;
-        String userAgent = "User-Agent";
-        String headerParam = "pan.baidu.com";
+        String userAgent = CommonHolder.ParamKey.USER_AGENT;
+        String headerParam = CommonHolder.ParamKey.HEADER_PARAM;
         try {
+            //做下载链接需要重定向操作的处理。
             URL url = new URL(getRedirectUrl());
             HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setUseCaches(false);
@@ -43,7 +48,7 @@ public class DownloadAssistantThread implements Runnable {
             //配置头信息。
             urlConnection.setRequestProperty("Accept", "*/*");
             urlConnection.setRequestProperty("Charset", "UTF-8");
-            urlConnection.setRequestProperty(userAgent, headerParam);
+//            urlConnection.setRequestProperty(userAgent, headerParam);
             //设置分段下载的头信息，Range:做分段。
             //startByteIndex下载文件的起始位置以后的字节范围。
             String rangeProperty = "bytes=" + startBytesIndex + "-";
@@ -60,7 +65,7 @@ public class DownloadAssistantThread implements Runnable {
             }
 
             long totalLength = urlConnection.getContentLength();
-            byte[] buf = new byte[10240];
+            byte[] buf = new byte[CommonHolder.DownloadConfiguration.DOWNLOAD_BUFFER];
             FileOutputStream fileOutputStream;
             InputStream inputStream = urlConnection.getInputStream();
 
@@ -68,8 +73,9 @@ public class DownloadAssistantThread implements Runnable {
             if (!saveDirPath.exists()) {
                 boolean isMk = saveDirPath.mkdirs();
             }
-            File saveFile = new File(mDABean.getSavePath(),
-                    mDABean.getFileName());
+            //先以.temp后缀保存，下载成功后替换掉后缀。
+            File saveFile = new File(mDABean.getSavePath(), mDABean.getTempFileName());
+
             if (saveFile.exists()) {
                 boolean isDelete = saveFile.delete();
             }
@@ -95,6 +101,7 @@ public class DownloadAssistantThread implements Runnable {
 
         } catch (Exception e) {
             e.printStackTrace();
+            Log.e(TAG, "HttpURLConnection downloadFailed is " + e.toString());
             downloadFailed();
         }
 
@@ -108,12 +115,14 @@ public class DownloadAssistantThread implements Runnable {
         mDABean.setCurLength(sum);
         mDABean.setTotalLength(totalLength);
 
+        DownloadTool.getInstance().updateDownloadStatus(mDABean);
 
         //写本地文件附属信息，存储当前文件状态，防止刷新数据丢失。
-//        String temporaryFile = CommonHolder.BaiDuParams.PBB_WEB_DISK_SOURCE
-//                + mBDFileListBean.getServerFilename()
-//                + CommonHolder.FILE_EXTENSION.IF;
-//        LocalObjectTool.saveObjectToLocal(temporaryFile, mDABean);
+        String temporaryFile = CommonHolder.FileDirectory.FILE_SOURCE
+                + mDABean.getFileName()
+                + CommonHolder.FileExtension.IF;
+        //实时写入更新下载文件信息。
+        LocalObjectTool.saveObjectToLocal(temporaryFile, mDABean);
 
 
     }
@@ -124,12 +133,13 @@ public class DownloadAssistantThread implements Runnable {
         mDABean.setDownloadFailed(false);
         mDABean.setCurDownloadAddress(absolutePath);
 
-//        DownloadTool.getInstance().setSuccessStatus(mBDFileListBean);
-//        DownloadTool.getInstance().updateDownloadStatus(mBDFileListBean);
+        //处理文件下载成功后的后缀替换等工作。
+        DownloadTool.getInstance().setSuccessStatus(false, mDABean);
+        DownloadTool.getInstance().updateDownloadStatus(mDABean);
 
-//        String downloadMsg = mBDFileListBean.getServerFilename() + " - 已下载";
-        //发送文件下载成功的通知。
 
+        //文件下载成功。
+        Log.e(TAG, mDABean.getFileName() + " - 已下载");
     }
 
     private void downloadFailed() {
@@ -137,18 +147,18 @@ public class DownloadAssistantThread implements Runnable {
         mDABean.setDownloading(false);
         mDABean.setDownloadFailed(true);
         mDABean.setCurProgress(0);
-//        DownloadTool.getInstance().updateDownloadStatus(mBDFileListBean);
-//
-//        //下载失败，删除掉文件和文件的附属信息。
-//        //如果添加断点下载则不删除。
-//        String curDownloadFile = CommonHolder.BaiDuParams.PBB_WEB_DISK_SOURCE
-//                + mBDFileListBean.getServerFilename()
-//                + CommonHolder.FILE_EXTENSION.TEMP;
-//        String temporaryFile = CommonHolder.BaiDuParams.PBB_WEB_DISK_SOURCE
-//                + mBDFileListBean.getServerFilename()
-//                + CommonHolder.FILE_EXTENSION.IF;
-//        FilesTool.deleteLocalFile(curDownloadFile);
-//        FilesTool.deleteLocalFile(temporaryFile);
+        DownloadTool.getInstance().updateDownloadStatus(mDABean);
+
+        //下载失败，删除掉文件和文件的附属信息。
+        //如果添加断点下载则不删除。
+        String curDownloadFile = CommonHolder.FileDirectory.FILE_SOURCE
+                + mDABean.getFileName()
+                + CommonHolder.FileExtension.TEMP;
+        String temporaryFile = CommonHolder.FileDirectory.FILE_SOURCE
+                + mDABean.getFileName()
+                + CommonHolder.FileExtension.IF;
+        FilesTool.deleteLocalFile(curDownloadFile);
+        FilesTool.deleteLocalFile(temporaryFile);
     }
 
 
@@ -166,7 +176,7 @@ public class DownloadAssistantThread implements Runnable {
             //配置头信息。
             urlConnection.setRequestProperty("Accept", "*/*");
             urlConnection.setRequestProperty("Charset", "UTF-8");
-            urlConnection.setRequestProperty(userAgent, headerParam);
+//            urlConnection.setRequestProperty(userAgent, headerParam);
             int responseCode = urlConnection.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP) {
                 Map<String, List<String>> headerFields = urlConnection.getHeaderFields();
